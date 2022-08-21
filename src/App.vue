@@ -475,6 +475,8 @@
   let word5Revealed = ref(false)
   let victoryRevealed = ref(false)
   let fairRevealed = ref(false)
+  let cannotGiveUp = ref(false)
+  let shownBoard = ref(Object())
   let newWord1 = ref('')
   let newWord2 = ref('')
   let newWord3 = ref('')
@@ -490,55 +492,19 @@
   })
 
   let boardOneDisabled = computed(() => {
-    return false
+    return !finished.value
   })
   let boardTwoDisabled = computed(() => {
-    if ( finished.value ) {
-      if ( currentGame.value > 0 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 0 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardThreeDisabled = computed(() => {
-    if ( finished.value ) {
-      if ( currentGame.value > 1 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 1 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardFourDisabled = computed(() => {
-    if ( finished.value ) {
-      if ( currentGame.value > 2 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 2 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardFiveDisabled = computed(() => {
-    if ( finished.value ) {
-      if ( currentGame.value > 3 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 3 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
 
   let newWord1Invalid = computed(() => {
@@ -622,6 +588,7 @@
   }
 
   const completeRow = function(skipAnimation,skipKeyboard) {
+    cannotGiveUp.value = true
     let word = ''
     if ( currentGame.value != 4 ) {
       word = words.value[currentGame.value]
@@ -635,20 +602,22 @@
     let guess = allGuesses.value[currentGame.value][currentGuess.value]
     for ( let i = 0; i < guess.length; i++){
       if ( guess[i]['letter'] === '' ) {
+        cannotGiveUp.value = false
         return
       }
     }
 
     let answerLetters = word.split('')
     let playerAnswer = guess.map((e) => e['letter']).join('')
+    let adverseWords = undefined
 
     if ( adversarial.value > 0 && currentGuess.value == 4 && currentGame.value == 4) {
-      let adverseWords = getAdverseWords(words.value[currentGame.value],playerAnswer)
+      adverseWords = getAdverseWords(words.value[currentGame.value],playerAnswer)
       if ( adverseWords['max'] == 1 ) {
         word = adverseWords['words'][Math.floor(Math.random() * adverseWords['words'].length)][0]
-        words.value[4] = [word]
+
       } else {
-        words.value[4] = adverseWords['words'][0]
+
         word = adverseWords['words'][0][Math.floor(Math.random() * adverseWords['words'][0].length)]
       }
     }
@@ -662,18 +631,29 @@
           word = words.value[4][Math.floor(Math.random() * words.value[4].length)]
         }
       }
-      words.value[4] = [word]
     }
 
     correct.value = ( playerAnswer === word )
     if ( adversarial.value == 3 && guessNotInAnswerList.value && currentGuess.value > 3 && currentGame.value == 4) {
+      cannotGiveUp.value = false
       return
     }
 
     if ( !correct.value && !acceptedWordList.includes(playerAnswer.toUpperCase()) && !skipAnimation ){
       showWordMissingMessage()
+      cannotGiveUp.value = false
       return
     }
+
+    if ( adverseWords != undefined ) {
+      if (adverseWords['max'] == 1) {
+        words.value[4] = [word]
+      } else {
+        words.value[4] = adverseWords['words'][0]
+      }
+
+    }
+
     let changedLetters = []
     let keyboardUpdates = []
     const colors = CalculateWordColors(word,playerAnswer)
@@ -690,7 +670,6 @@
       setTimeout( () => {
         guess[i]['colored'] = true
       }, (450 + 150 * (i)) * skip)
-
     }
 
     setTimeout( () => {
@@ -699,6 +678,9 @@
       }
       if ( finished.value ) {
         showWinModal.value = true
+      }
+      if ( !correct.value) {
+        cannotGiveUp.value = false
       }
     }, 300 * guess.length * skip)
 
@@ -711,9 +693,10 @@
         currentPosition.value = 0
         currentGuess.value = -1
         setTimeout(() => {
+          currentGame.value++
+          shownBoard.value = document.getElementById('board' + (currentGame.value + 1))
           currentPosition.value = 0
           currentGuess.value = 0
-          currentGame.value++
           resetKeyboard()
           completeRow(true)
           if ( currentGame.value == 4 ) {
@@ -782,7 +765,7 @@
   })
 
   const onKey = function(key) {
-    if (showWinModal.value || showHelpModal.value || showConfirmModal.value || showFormModal.value || finished.value ) {
+    if (showWinModal.value || showHelpModal.value || showConfirmModal.value || showFormModal.value || finished.value || ( currentGame.value + 1 != shownBoard.value['id'].replace('board',''))) {
       return
     }
     if (/^[a-zA-Z_\-]$/.test(key)) {
@@ -883,6 +866,7 @@
     word5Revealed.value = false
     victoryRevealed.value = false
     fairRevealed.value = false
+    cannotGiveUp.value = false
   }
 
   const giveUp = function() {
@@ -1014,6 +998,19 @@
       span.className = classes
     }, 2000)
   }
+
+  const updateShowConfirmModal = function() {
+    if ( cannotGiveUp.value ) {
+      return
+    }
+    showConfirmModal.value = (true && !finished.value)
+  }
+  window.addEventListener('shown.bs.tab', function (event) {
+    shownBoard.value = event.target
+  })
+  $(document).ready( function() {
+    shownBoard.value = document.getElementById('board1')
+  })
 </script>
 
 <template>
@@ -1028,7 +1025,7 @@
         <span class="title">Gauntletle</span>
       </div>
       <div class="col-md-3 help">
-        <XIcon class="give-up-icon" @click="showConfirmModal = (true && !finished)"></XIcon>
+        <XIcon class="give-up-icon" @click="updateShowConfirmModal"></XIcon>
         <ChartBarIcon @click="openWinModal" :class="{ inactive: !finished }" ></ChartBarIcon>
         <QuestionMarkCircleIcon @click="showHelpModal = true"></QuestionMarkCircleIcon>
         <CogIcon @click="showSettingsModal = true"></CogIcon>
@@ -1036,7 +1033,7 @@
     </div>
     <div class="info">
       <h5 class="warning-message" :class="{'shown': guessNotInDictionary || guessNotInAnswerList }">Word not in {{guessNotInDictionary ? 'dictionary' : 'answer list'}}.</h5>
-      <!-- words: {{words}}<br/>
+    <!-- words: {{words}}<br/>
       victory: {{victoryWords}}<br/>
       fair: {{fairAnswerWords}}<br/>
       {{currentGame}} -->
