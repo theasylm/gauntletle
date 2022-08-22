@@ -163,7 +163,8 @@
     for (let i = 0; i < len; i++) {
       binary += String.fromCharCode(bufferView8[i]);
     }
-    return window.btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+    let s = window.btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+    return s
   }
 
   const decodeGame = function(encoded) {
@@ -188,76 +189,6 @@
     return CryptoJS.enc.Base64.parse(s).toString(CryptoJS.enc.Utf8).split('|')
   }
 
-const permutator = function(inputArr) {
-  let results = [];
-
-  const permute = function(arr, memo) {
-    let cur
-    memo = memo || [];
-
-    for (let i = 0; i < arr.length; i++) {
-      cur = arr.splice(i, 1);
-      if (arr.length === 0) {
-        results.push(memo.concat(cur));
-      }
-      permute(arr.slice(), memo.concat(cur));
-      arr.splice(i, 0, cur[0]);
-    }
-
-    return results;
-  }
-
-  return permute(inputArr);
-}
-
-  const optimizeWords = function(wordList) {
-    let scores = new Array(4);
-
-    for (let i = 0; i < scores.length; i++) {
-      scores[i] = new Array(4);
-    }
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
-        if ( i == j) {
-          continue
-        }
-        let colors = CalculateWordColors(wordList[i],wordList[j])
-        let score = 0
-        for (let z = 0; z < colors.length; z++) {
-          switch (colors[z]) {
-            case 'g':
-              score += 2
-              break
-            case 'y':
-              score += 1
-              break
-            default:
-              break
-          }
-        }
-        scores[i][j] = score
-      }
-    }
-    let permutations = permutator([0,1,2,3])
-    let bestScore = 9999
-    let best = null
-    for(const permutation of permutations) {
-      let score = scores[permutation[0]][permutation[1]]
-        + scores[permutation[1]][permutation[2]]
-        + scores[permutation[2]][permutation[3]]
-      if(score < bestScore) {
-        bestScore = score
-        best = permutation
-      }
-    }
-
-    let resultingWordList = Array(4)
-    for(let i = 0; i < 4; i++) {
-      resultingWordList[i] = wordList[best[i]]
-    }
-    return resultingWordList
-  }
-
   const genNewWords = function() {
     while ( words.value.length < 5 ){
       words.value.length = 0
@@ -270,12 +201,7 @@ const permutator = function(inputArr) {
       }
       let fairAnswers = GetFairAnswer(wordList,words.value)
       if ( fairAnswers[0].length > 0 ) {
-        if( adversarial.value > 3) {
-          words.value = optimizeWords(words.value)
-          fairAnswerWords.value = fairAnswers[0]
-          words.value.push(fairAnswers[0])
-          victoryWords.value = fairAnswers[1]
-        } else if ( adversarial.value > 1 ) {
+        if ( adversarial.value > 1 ) {
           fairAnswerWords.value = fairAnswers[0]
           words.value.push(fairAnswers[0])
           victoryWords.value = fairAnswers[1]
@@ -301,8 +227,8 @@ const permutator = function(inputArr) {
     playAgain()
   }
 
-  const loadWords = function(p1) {
-    let a = decodeGame(p1)
+  const loadWords = function(p) {
+    let a = decodeGame(p)
     for (let i=0; i < 4; i++){
       words.value[i] = wordList[a[i]]
     }
@@ -310,8 +236,8 @@ const permutator = function(inputArr) {
     adversarial.value = 0
   }
 
-  const loadCustom = function(c1) {
-    let a = decodeCustom(c1)
+  const loadCustom = function(c) {
+    let a = decodeCustom(c)
     for (let i=0; i < 4; i++){
       words.value[i] = a[i]
     }
@@ -569,56 +495,16 @@ const permutator = function(inputArr) {
     return !finished.value
   })
   let boardTwoDisabled = computed(() => {
-    //Are these supposed to be different? if not, then why is this here?
-    if ( finished.value ) {
-      if ( currentGame.value > 0 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 0 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardThreeDisabled = computed(() => {
-    //Are these supposed to be different? if not, then why is this here?
-    if ( finished.value ) {
-      if ( currentGame.value > 1 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 1 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardFourDisabled = computed(() => {
-        //Are these supposed to be different? if not, then why is this here?
-    if ( finished.value ) {
-      if ( currentGame.value > 2 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 2 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
   let boardFiveDisabled = computed(() => {
-        //Are these supposed to be different? if not, then why is this here?
-    if ( finished.value ) {
-      if ( currentGame.value > 3 ) {
-        return false
-      }
-    } else {
-      if ( currentGame.value > 3 ) {
-        return false
-      }
-    }
-    return true
+    return !finished.value
   })
 
   let newWord1Invalid = computed(() => {
@@ -721,6 +607,7 @@ const permutator = function(inputArr) {
       }
     }
 
+    let answerLetters = word.split('')
     let playerAnswer = guess.map((e) => e['letter']).join('')
     let adverseWords = undefined
 
@@ -747,7 +634,7 @@ const permutator = function(inputArr) {
     }
 
     correct.value = ( playerAnswer === word )
-    if ( adversarial.value >= 3 && guessNotInAnswerList.value && currentGuess.value > 3 && currentGame.value == 4) {
+    if ( adversarial.value == 3 && guessNotInAnswerList.value && currentGuess.value > 3 && currentGame.value == 4) {
       cannotGiveUp.value = false
       return
     }
@@ -1186,8 +1073,8 @@ const permutator = function(inputArr) {
         </div>
         <div class="tab-pane fade" :class="{'active': currentGame == 4, 'show': currentGame == 4}" id="board-five-pane" role="tabpanel" aria-labelledby="board-five" tabindex="-1">
           <Board :guesses="allGuesses[4]" :guessNotInDictionary="guessNotInDictionary" :guessNotInAnswerList="guessNotInAnswerList" :currentGuess="currentGuess" :currentPosition="currentPosition" :wordLength="wordLength"></Board>
-          <h5 class="paths" v-if="adversarial >= 3 && currentGame == 4">{{victoryWords.length}} path{{ victoryWords.length > 1 ? 's' : '' }} to victory</h5>
-          <h5 class="victory" v-if="adversarial >= 3 && currentGame == 4" :class="{'shown': finished }">
+          <h5 class="paths" v-if="adversarial == 3 && currentGame == 4">{{victoryWords.length}} path{{ victoryWords.length > 1 ? 's' : '' }} to victory</h5>
+          <h5 class="victory" v-if="adversarial == 3 && currentGame == 4" :class="{'shown': finished }">
             Victory words: <span class="victory-words" :class="{'revealed': victoryRevealed}">{{victoryWords.join(', ')}}</span>
             <span class="reveal-word">
               <EyeIcon @click="victoryRevealed = !victoryRevealed"></EyeIcon>
@@ -1313,11 +1200,11 @@ const permutator = function(inputArr) {
         <div class="mb-3 row">
           <div class="col-sm-12">
             Guess the five words in the given number of tries. After each guess, the tiles will be colored to indicate how close to the target word your guess was.
-            <img src="./assets/green_clue.png" alt="green clue"/>
+            <img src="./assets/green_clue.png"/>
             Green indicates the N is in the correct spot.
-            <img src="./assets/yellow_clue.png" alt="yellow clue"/>
+            <img src="./assets/yellow_clue.png"/>
             Yellow indicates the U is in the word, but in another position.
-            <p><img src="./assets/grey_clue.png" alt="grey clue"/>
+            <p><img src="./assets/grey_clue.png"/>
             Grey indicates the P is not in the word.</p>
             <p>After the first word, you will be seeded with the previous word as your starting guess.</p>
             <p>On the final word, you will be seeded with the previous four words as starting guesses.</p>
@@ -1334,9 +1221,8 @@ const permutator = function(inputArr) {
             <p>The way to win an adversarial game is to make a guess that makes all remaining answers equally likely. The computer will then be forced to eliminate all but one possible choice and give you the clues based on that choice.</p>
             <p>It is important to note for these rules that there is difference in word lists; specifically, there is an answer list, and there is an accepted list. Only words that can be found on the answer list can ever be answers. However, in most modes, you are allowed to guess anything on the accepted list. There is a setting available to inform of whether a word is on the answer list or not.</p>
             <p>The first level of difficulty, "On", is simply having adversarial mode on. The number of words that will eliminate the possibilities and ensure a win is at least 10 words on the answer list, though there are usually quite a number in this mode. You are free to guess words on the accepted list, which can win the game.</p>
-            <p>The second level of difficulty, "Hard", limits the number of possible words that ensures victory to less than 10 on the answer list. Importantly, however, you are <em>not</em> required to guess a word on the answer list to win. There can be guesses on the accepted list that can win, and you may guess them in this mode.</p>
-            <p>"Ultra" difficulty not only limits the number of possible words to less than 10 on the answer list, in this mode you <em>are</em> required to guess a word on the answer list to win. Words that are just on the accepted list are not permitted as guesses in this mode on the final board, though you may guess accepted words on other boards.</p>
-            <p>Finally, "Super Ultra" difficulty not only limits the number of possible words to less than 10 on the answer list, in this mode you <em>are</em> required to guess a word on the answer list to win. Words that are just on the accepted list are not permitted as guesses in this mode on the final board, though you may guess accepted words on other boards. Additionally, the sequence of words for the first 4 boards are optimized to minimize information on boards 2-4.</p>
+            <p>The second level of difficulty, "Hard", limits the number of possible words that ensures victory to less than 10 on the answer list. Importantly, however, you are <i>not</i> required to guess a word on the answer list to win. There can be guesses on the accepted list that can win, and you may guess them in this mode.</p>
+            <p>Finally, "Ultra" difficulty not only limits the number of possible words to less than 10 on the answer list, in this mode you <i>are</i> required to guess a word on the answer list to win. Words that are just on the accepted list are not permitted as guesses in this mode on the final board, though you may guess accepted words on other boards.</p>
             <p>Note: while you can share the results of an adversarial game, you cannot share a link to one.</p>
             <hr/>
           </div>
@@ -1496,12 +1382,6 @@ const permutator = function(inputArr) {
               <input class="form-check-input" type="radio" name="adversarial-mode" id="adversarial-mode-ultra" value="3" v-model="adversarial" @change="updateAdversarial">
               <label class="form-check-label" for="adversarial-mode-ultra">
                 Ultra
-              </label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="adversarial-mode" id="adversarial-mode-super-ultra" value="4" v-model="adversarial" @change="updateAdversarial">
-              <label class="form-check-label" for="adversarial-mode-super-ultra">
-                Super Ultra
               </label>
             </div>
           </div>
