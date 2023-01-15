@@ -630,6 +630,15 @@
         while ( word == playerAnswer ) {
           word = words.value[4][Math.floor(Math.random() * words.value[4].length)]
         }
+        let index = words.value[4].indexOf(playerAnswer)
+        let newWords = []
+        for ( let x=0; x < words.value[4].length; x++ ){
+          if ( x == index ){
+            continue 
+          }
+          newWords.push(words.value[4][x])
+        }
+        words.value[4] = newWords        
       }
     }
 
@@ -1023,6 +1032,7 @@
       </div>
       <div class="col-md-6">
         <span class="title">Gauntletle</span>
+        {{words}}
       </div>
       <div class="col-md-3 help">
         <XIcon class="give-up-icon" @click="updateShowConfirmModal"></XIcon>
