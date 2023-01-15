@@ -631,14 +631,9 @@
           word = words.value[4][Math.floor(Math.random() * words.value[4].length)]
         }
         let index = words.value[4].indexOf(playerAnswer)
-        let newWords = []
-        for ( let x=0; x < words.value[4].length; x++ ){
-          if ( x == index ){
-            continue 
-          }
-          newWords.push(words.value[4][x])
+        if ( index != -1 ){
+          words.value[4].splice(index, 1)  
         }
-        words.value[4] = newWords        
       }
     }
 
