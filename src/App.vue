@@ -1027,7 +1027,6 @@
       </div>
       <div class="col-md-6">
         <span class="title">Gauntletle</span>
-        {{words}}
       </div>
       <div class="col-md-3 help">
         <XIcon class="give-up-icon" @click="updateShowConfirmModal"></XIcon>
